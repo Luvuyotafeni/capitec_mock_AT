@@ -24,7 +24,11 @@ public class AdminController {
 
     @DeleteMapping("/users/{id}")
     public void deleteUser(@PathVariable Long id) {
-        userRepository.deleteById(id);
+        try {
+            userRepository.deleteById(id);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     @GetMapping("/transactions")
