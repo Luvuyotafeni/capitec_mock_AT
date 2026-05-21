@@ -26,14 +26,46 @@ public class AdminController {
 
     @DeleteMapping("/users/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
-        // 404 if user doesn't exist — don't attempt a blind delete
+
         if (!userRepository.existsById(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("User with ID " + id + " not found");
         }
 
         userRepository.deleteById(id);
-        return ResponseEntity.ok("User " + id + " deleted successfully");
+
+        return ResponseEntity.ok(
+                "User " + id + " deleted successfully"
+        );
+    }
+
+    @DeleteMapping("/users/delete-all-users")
+    public ResponseEntity<String> deleteAllNormalUsers() {
+
+        List<User> users = userRepository.findAll();
+
+        List<User> normalUsers = users.stream()
+                .filter(user -> "ROLE_USER".equals(user.getRole()))
+                .toList();
+
+        if (normalUsers.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("No ROLE_USER accounts found");
+        }
+
+        for (User user : normalUsers) {
+
+            List<Transaction> transactions =
+                    transactionRepository.findByUserId(user.getId());
+
+            transactionRepository.deleteAll(transactions);
+
+            userRepository.delete(user);
+        }
+
+        return ResponseEntity.ok(
+                "All ROLE_USER accounts deleted successfully"
+        );
     }
 
     @GetMapping("/transactions")
