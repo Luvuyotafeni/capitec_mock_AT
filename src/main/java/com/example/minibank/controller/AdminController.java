@@ -2,11 +2,13 @@ package com.example.minibank.controller;
 
 import com.example.minibank.entity.Transaction;
 import com.example.minibank.entity.User;
+import com.example.minibank.enums.Role;
 import com.example.minibank.repository.TransactionRepository;
 import com.example.minibank.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,16 +23,25 @@ public class AdminController {
 
     @GetMapping("/users")
     public List<User> getUsers() {
+
         return userRepository.findAll();
     }
 
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<String> deleteUser(
+            @PathVariable Long id
+    ) {
 
         if (!userRepository.existsById(id)) {
+
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("User with ID " + id + " not found");
         }
+
+        List<Transaction> transactions =
+                transactionRepository.findByUserId(id);
+
+        transactionRepository.deleteAll(transactions);
 
         userRepository.deleteById(id);
 
@@ -39,16 +50,15 @@ public class AdminController {
         );
     }
 
+    @Transactional
     @DeleteMapping("/users/delete-all-users")
     public ResponseEntity<String> deleteAllNormalUsers() {
 
-        List<User> users = userRepository.findAll();
-
-        List<User> normalUsers = users.stream()
-                .filter(user -> "ROLE_USER".equals(user.getRole()))
-                .toList();
+        List<User> normalUsers =
+                userRepository.findByRole(Role.ROLE_USER);
 
         if (normalUsers.isEmpty()) {
+
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("No ROLE_USER accounts found");
         }
@@ -70,6 +80,7 @@ public class AdminController {
 
     @GetMapping("/transactions")
     public List<Transaction> getTransactions() {
+
         return transactionRepository.findAll();
     }
 }
